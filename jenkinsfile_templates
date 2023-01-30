@@ -1,0 +1,106 @@
+
+pipeline {
+
+    agent
+        { docker
+            { image 'python:latest' }
+    }
+
+    environment {
+        JENKINS_REPO_NAME = 'dnacenter_jenkins'
+        TEMPLATES_REPO_NAME = 'templates_jenkins'
+        GITHUB_USERNAME = 'gzapodea'
+        GITHUB_TOKEN = credentials('GITHUB_TOKEN')
+    }
+
+    options {
+        skipStagesAfterUnstable()
+        timeout(time: 15, unit: 'MINUTES')
+    }
+
+    stages {
+
+        stage ('Build Python Environment') {
+            steps {
+                echo('\n\nBuilding the Docker container and Installing Python libraries:..........')
+                sh 'git clone https://' + GITHUB_USERNAME + ':' + GITHUB_TOKEN + '@github.com/zapodeanu/' + JENKINS_REPO_NAME + '.git'
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    sh 'pip install -r ' + JENKINS_REPO_NAME + '/requirements.txt --no-warn-script-location'
+                    echo('\n\nVerify Python version and Libraries:............')
+                    sh 'python --version'
+                    sh 'pip3 list'
+                    echo('\n\nVerify Application Files:..........')
+                    sh 'ls ' + JENKINS_REPO_NAME + '/'
+                }
+            }
+        }
+
+        stage ('Download the Project Repo') {
+            steps {
+                echo('\n\nDownloading the CLI Templates:..........')
+                sh 'git clone https://' + GITHUB_USERNAME + ':' + GITHUB_TOKEN + '@github.com/zapodeanu/' + TEMPLATES_REPO_NAME + '.git'
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    echo('\n\nVerify Templates Files:............')
+                    sh 'ls ' + TEMPLATES_REPO_NAME + '/'
+                }
+            }
+        }
+
+        stage ('Deploy the CLI Templates - Lab') {
+            steps {
+                echo('\n\nLab Deploying the CLI Templates:..........')
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    echo('\n\nVerify Working Path:............')
+                    sh 'pwd'
+                    dir('dnacenter_jenkins') {
+                        sh 'python3 lab_deploy_templates.py'
+                    }
+                }
+            }
+        }
+
+        stage ('Deploy the CLI Templates - Production') {
+            steps {
+                echo('\n\nDeploying the CLI Templates:..........')
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    echo('\n\nVerify Working Path:............')
+                    sh 'pwd'
+                    dir('dnacenter_jenkins') {
+                        sh 'python3 deploy_templates.py'
+                    }
+                }
+            }
+        }
+
+        stage ('Upload Deployment Report') {
+            steps {
+                echo('\n\nVerify if the deployment report file exists:..........')
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    dir('templates_jenkins') {
+                        sh 'ls deployment_report.json'
+
+                        echo('\n\nUploading to GitHub the deployment report:..........')
+
+                        sh 'git config --global user.email "gzapodea@cisco.com"'
+                        sh 'git config --global user.name "gzapodea"'
+                        sh 'git add deployment_report.json'
+                        sh 'git commit -m "committed by Jenkins"'
+                        sh 'git push origin master --force'
+
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+
+        cleanup {
+            cleanWs()
+        }
+
+        always {
+            echo '\n\nJenkins CLI Templates Deployment end'
+        }
+    }
+}

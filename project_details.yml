@@ -1,0 +1,16 @@
+dna_center:
+  ip_address: host
+  username: user
+  password: password
+
+devices_lab:
+  hostname: [PDX-RN]
+
+devices_info:
+  hostname: [PDX-RO, SP, NYC-RO]
+
+project:
+  name: Jenkins
+
+template:
+  name: cli_template.txt

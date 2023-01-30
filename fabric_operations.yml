@@ -1,0 +1,46 @@
+area_info:
+  name: OR
+  hierarchy: Global
+
+building_info:
+  name: LO
+
+floor_info:
+  name: Floor-3
+
+devices_info:
+  device_ips: [10.93.141.20, 10.93.141.28, 10.93.141.19]
+  device_roles: [control-plane, border, edge]
+
+fabric_info:
+  name: Floor-3
+
+ip_transit_pool:
+  name: LO_transit_pool
+  type: Generic
+  subnet: 10.1.4.0/24
+  gateway: 10.1.4.1
+  dhcp_server: 10.93.141.46
+  address_family: IPv4
+
+l3_vn:
+  name: Servers
+
+control_plane_devices:
+  ip: [10.93.141.20]
+
+border_devices:
+  ip: [10.93.141.28]
+  routing_protocol: BGP
+  internal_bgp_as: 65001
+  external_bgp_as: 65002
+  external_interface: TenGigabitEthernet1/1/1
+  transit_network: IP_Transit
+  transit_vlan: 602
+
+edge_devices:
+  ip: [10.93.141.19]
+
+auth_profile:
+  name: No Authentication
+

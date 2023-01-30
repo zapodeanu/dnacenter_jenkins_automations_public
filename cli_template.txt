@@ -1,0 +1,8 @@
+
+interface loopback 500
+ description Interface - Jenkins_config
+
+ip access-list extended RETAIL
+ remark Access List for RETAIL - Jenkins_config
+ 10 permit ip any host 10.94.141.90
+ 20 permit ip any host 10.94.141.91

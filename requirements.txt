@@ -1,0 +1,7 @@
+requests
+urllib3
+dnacentersdk
+pyopenssl
+python-dotenv
+PyYAML
+PyGithub

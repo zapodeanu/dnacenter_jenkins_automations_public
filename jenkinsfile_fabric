@@ -1,0 +1,104 @@
+
+pipeline {
+
+    agent
+        { docker
+            { image 'python:latest' }
+    }
+
+    environment {
+        JENKINS_REPO_NAME = 'dnacenter_jenkins_automations'
+        FABRIC_OPERATIONS_NAME = 'fabric_operations.yml'
+        GITHUB_USERNAME = 'gzapodea'
+        GITHUB_TOKEN = credentials('GITHUB_TOKEN')
+    }
+
+    options {
+        skipStagesAfterUnstable()
+        timeout(time: 15, unit: 'MINUTES')
+    }
+
+    stages {
+
+        stage ('Build Python Environment') {
+            steps {
+                echo '\n\nJenkins Create Fabric build start..............................'
+                echo('\n\nBuilding the Docker container:..............................')
+            }
+        }
+
+        stage ('Install Python libraries') {
+            steps {
+                echo('\n\nInstalling Python libraries:..............................')
+                sh 'git clone https://' + GITHUB_USERNAME + ':' + GITHUB_TOKEN + '@github.com/zapodeanu/' + JENKINS_REPO_NAME + '.git'
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    sh 'pip install -r ' + JENKINS_REPO_NAME + '/requirements.txt --no-warn-script-location'
+                    echo('\n\nVerify Python version and Libraries:..............................')
+                    sh 'python --version'
+                    sh 'pip3 list'
+                    echo('\n\nVerify Application Files:..............................')
+                    sh 'ls ' + JENKINS_REPO_NAME + '/'
+                }
+            }
+        }
+
+        stage ('Identify if new config file') {
+            when {
+                expression {
+                    return fileExists (JENKINS_REPO_NAME + '/' + FABRIC_OPERATIONS_NAME)
+                }
+            }
+            steps {
+                echo "New fabric config file found.............................."
+            }
+        }
+
+        stage ('Review the fabric config') {
+            when {
+                expression {
+                    return fileExists (JENKINS_REPO_NAME + '/' + FABRIC_OPERATIONS_NAME)
+                }
+            }
+            steps {
+                echo('\n\n"fabric_operations.yml":..............................')
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    echo('\n\nVerify Working Path:..............................')
+                    sh 'pwd'
+                    dir(JENKINS_REPO_NAME) {
+                        sh 'cat $FABRIC_OPERATIONS_NAME'
+                    }
+                }
+            }
+        }
+
+        stage ('Create Fabric, add CP, BN, EN') {
+            when {
+                expression {
+                    return fileExists (JENKINS_REPO_NAME + '/' + FABRIC_OPERATIONS_NAME)
+                }
+            }
+            steps {
+                echo('\n\nCreate a new fabric and add devices to the fabric:..............................')
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    echo('\n\nVerify Working Path:..............................')
+                    sh 'pwd'
+                    dir(JENKINS_REPO_NAME) {
+                        sh 'python3 create_fabric.py'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+
+        cleanup {
+            cleanWs()
+        }
+
+        always {
+            echo '\n\nJenkins Device Inventory build end'
+        }
+    }
+
+}
